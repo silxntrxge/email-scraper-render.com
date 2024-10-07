@@ -16,6 +16,10 @@ import validators
 import random
 from urllib.parse import unquote
 from collections import Counter
+from fake_useragent import UserAgent
+
+# Initialize the UserAgent
+ua = UserAgent()
 
 app = Flask(__name__)
 
@@ -77,6 +81,8 @@ def initialize_driver():
         chrome_options.add_argument("--headless")
         chrome_options.add_argument("--no-sandbox")
         chrome_options.add_argument("--disable-dev-shm-usage")
+        # Add a random user agent
+        chrome_options.add_argument(f"user-agent={ua.random}")
         chrome_options.binary_location = "/usr/bin/google-chrome-stable"
         
         driver = webdriver.Chrome(options=chrome_options)
@@ -99,6 +105,8 @@ def generate_urls(names, domain, niches, num_pages=5):
 
 def scrape_emails_from_url(driver, url, email_counter):
     print(f"Scraping emails from URL: {url}")
+    # Set a new random user agent for each request
+    driver.execute_cdp_cmd('Network.setUserAgentOverride', {"userAgent": ua.random})
     driver.get(url)
     
     # Add a small random delay after loading the page
@@ -129,8 +137,7 @@ def scrape_emails(names, domain, niches, webhook_url=None, record_id=None):
         for niche in niches:
             urls = generate_urls([name], domain, [niche])
             consecutive_zero_count = 0
-            max_consecutive_zero = 5  # Threshold for consecutive zero results
-            waited_once = False
+            backoff_time = 60  # Start with a 1-minute backoff
 
             for url in urls:
                 try:
@@ -138,19 +145,14 @@ def scrape_emails(names, domain, niches, webhook_url=None, record_id=None):
                     if not emails:
                         consecutive_zero_count += 1
                         print(f"No emails found. Consecutive zero count: {consecutive_zero_count}")
-                        if consecutive_zero_count >= max_consecutive_zero:
-                            if not waited_once:
-                                print("Reached maximum consecutive zero results. Waiting for 2 minutes...")
-                                time.sleep(120)  # Wait for 2 minutes (120 seconds)
-                                waited_once = True
-                                consecutive_zero_count = 0  # Reset the counter after waiting
-                            else:
-                                print(f"Still no results after waiting. Moving to next word combination.")
-                                break  # Exit the inner loop and move to the next word combination
+                        if consecutive_zero_count > 0:
+                            print(f"Implementing exponential backoff. Waiting for {backoff_time} seconds...")
+                            time.sleep(backoff_time)
+                            backoff_time *= 2  # Double the backoff time for next iteration
                     else:
                         all_emails.update(emails)
                         consecutive_zero_count = 0  # Reset the counter when emails are found
-                        waited_once = False  # Reset the wait flag when emails are found
+                        backoff_time = 60  # Reset backoff time when emails are found
                     
                     # Implement rate limiting
                     delay = random.uniform(3, 7)  # Random delay between 3 and 7 seconds
@@ -158,6 +160,10 @@ def scrape_emails(names, domain, niches, webhook_url=None, record_id=None):
                     time.sleep(delay)
                 except Exception as e:
                     print(f"Error scraping URL {url}: {e}")
+                    consecutive_zero_count += 1
+                    print(f"Implementing exponential backoff due to error. Waiting for {backoff_time} seconds...")
+                    time.sleep(backoff_time)
+                    backoff_time *= 2  # Double the backoff time for next iteration
             
             completed_combinations += 1
             progress = (completed_combinations / total_combinations) * 100
