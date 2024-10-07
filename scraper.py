@@ -46,10 +46,9 @@ def initialize_driver():
         chrome_options.add_argument("--headless")
         chrome_options.add_argument("--no-sandbox")
         chrome_options.add_argument("--disable-dev-shm-usage")
-        chrome_options.binary_location = "/opt/chrome-linux64/chrome"
+        chrome_options.binary_location = "/usr/bin/google-chrome-stable"
         
-        service = Service(executable_path="/opt/chrome-linux64/chromedriver")
-        driver = webdriver.Chrome(service=service, options=chrome_options)
+        driver = webdriver.Chrome(options=chrome_options)
         print("WebDriver initialized successfully.")
         return driver
     except Exception as e:
