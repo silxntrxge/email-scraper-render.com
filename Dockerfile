@@ -23,4 +23,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Set the entrypoint
-CMD ["gunicorn", "--bind", "0.0.0.0:$PORT", "scraper:app"]
+CMD gunicorn --bind 0.0.0.0:$PORT scraper:app
