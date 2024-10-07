@@ -9,6 +9,7 @@ from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 from functools import wraps
+import threading
 
 app = Flask(__name__)
 
@@ -110,6 +111,10 @@ def require_api_key(f):
         return jsonify({"error": "Unauthorized"}), 401
     return decorated
 
+def background_scrape(names_list, domain, niches_list, webhook_url, record_id):
+    emails = scrape_emails(names_list, domain, niches_list, webhook_url, record_id)
+    print(f"Background scraping completed. Emails found: {len(emails)}")
+
 @app.route('/scrape', methods=['POST'])
 @require_api_key
 def scrape():
@@ -123,9 +128,11 @@ def scrape():
     names_list = [name.strip() for name in names.split(',') if name.strip()]
     niches_list = [niche.strip() for niche in niches.split(',') if niche.strip()]
 
-    emails = scrape_emails(names_list, domain, niches_list, webhook_url, record_id)
+    # Start the scraping process in a background thread
+    thread = threading.Thread(target=background_scrape, args=(names_list, domain, niches_list, webhook_url, record_id))
+    thread.start()
     
-    return jsonify({'emails': emails, 'recordId': record_id})
+    return jsonify({'message': 'Scraping process started', 'recordId': record_id}), 200
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 8080)))
