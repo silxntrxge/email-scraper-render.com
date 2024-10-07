@@ -26,14 +26,18 @@ def save_emails(emails, output_file='emails.txt'):
     except Exception as e:
         print(f"Error saving emails: {e}")
 
-def send_to_webhook(emails, webhook_url):
+def send_to_webhook(emails, webhook_url, record_id):
     print(f"Sending {len(emails)} emails to webhook: {webhook_url}")
     try:
-        response = requests.post(webhook_url, json={'emails': emails})
+        payload = {
+            'emails': emails,
+            'recordId': record_id
+        }
+        response = requests.post(webhook_url, json=payload)
         response.raise_for_status()
-        print("Emails sent to webhook successfully.")
+        print("Emails and recordId sent to webhook successfully.")
     except Exception as e:
-        print(f"Error sending emails to webhook: {e}")
+        print(f"Error sending data to webhook: {e}")
 
 def initialize_driver():
     print("Initializing Selenium WebDriver...")
@@ -72,7 +76,7 @@ def scrape_emails_from_url(driver, url):
     print(f"Found {len(emails)} emails on this page.")
     return set(emails)
 
-def scrape_emails(names, domain, niches, webhook_url=None):
+def scrape_emails(names, domain, niches, webhook_url=None, record_id=None):
     print("Starting the scraper...")
     driver = initialize_driver()
     
@@ -93,7 +97,7 @@ def scrape_emails(names, domain, niches, webhook_url=None):
     save_emails(email_list)
     
     if webhook_url:
-        send_to_webhook(email_list, webhook_url)
+        send_to_webhook(email_list, webhook_url, record_id)
     
     print(f"Scraper finished successfully. Total emails collected: {len(email_list)}")
     return email_list
@@ -102,7 +106,7 @@ def require_api_key(f):
     @wraps(f)
     def decorated(*args, **kwargs):
         api_key = request.headers.get('X-API-Key')
-        if api_key and api_key == os.environ.get('API_KEY'):
+        if api_key and api_key == os.environ.get('GOOGLE_API_KEY'):
             return f(*args, **kwargs)
         return jsonify({"error": "Unauthorized"}), 401
     return decorated
@@ -115,13 +119,14 @@ def scrape():
     domain = data.get('domain', '')
     niches = data.get('niche', '')
     webhook_url = data.get('webhook', '')
+    record_id = data.get('recordId', '')
 
     names_list = [name.strip() for name in names.split(',') if name.strip()]
     niches_list = [niche.strip() for niche in niches.split(',') if niche.strip()]
 
-    emails = scrape_emails(names_list, domain, niches_list, webhook_url)
+    emails = scrape_emails(names_list, domain, niches_list, webhook_url, record_id)
     
-    return jsonify({'emails': emails})
+    return jsonify({'emails': emails, 'recordId': record_id})
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 8080)))
