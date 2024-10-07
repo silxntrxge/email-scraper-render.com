@@ -2,7 +2,8 @@ services:
   - type: web
     name: email-scraper
     env: docker
-    buildCommand: docker build -t email-scraper .
+    buildCommand: |
+      docker build -t email-scraper .
     startCommand: docker run -p $PORT:$PORT -e PORT=$PORT email-scraper
     envVars:
       - key: PYTHON_VERSION
