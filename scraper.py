@@ -145,10 +145,9 @@ def scrape_emails(names, domain, niches, webhook_url=None, record_id=None):
                     if not emails:
                         consecutive_zero_count += 1
                         print(f"No emails found. Consecutive zero count: {consecutive_zero_count}")
-                        if consecutive_zero_count > 0:
-                            print(f"Implementing exponential backoff. Waiting for {backoff_time} seconds...")
-                            time.sleep(backoff_time)
-                            backoff_time *= 2  # Double the backoff time for next iteration
+                        print(f"Implementing exponential backoff. Waiting for {backoff_time} seconds...")
+                        time.sleep(backoff_time)
+                        backoff_time *= 2  # Double the backoff time for next iteration
                     else:
                         all_emails.update(emails)
                         consecutive_zero_count = 0  # Reset the counter when emails are found
@@ -160,7 +159,6 @@ def scrape_emails(names, domain, niches, webhook_url=None, record_id=None):
                     time.sleep(delay)
                 except Exception as e:
                     print(f"Error scraping URL {url}: {e}")
-                    consecutive_zero_count += 1
                     print(f"Implementing exponential backoff due to error. Waiting for {backoff_time} seconds...")
                     time.sleep(backoff_time)
                     backoff_time *= 2  # Double the backoff time for next iteration
