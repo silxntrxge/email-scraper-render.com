@@ -14,7 +14,7 @@ import threading
 app = Flask(__name__)
 
 def get_emails(text):
-    email_pattern = r'[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+' # Modified to catch all email domains
+    email_pattern = r'\b[A-Za-z0-9._%+-]+@gmail\.com\b'
     return re.findall(email_pattern, text)
 
 def save_emails(emails, output_file='emails.txt'):
@@ -30,8 +30,14 @@ def save_emails(emails, output_file='emails.txt'):
 def send_to_webhook(emails, webhook_url, record_id):
     print(f"Sending {len(emails)} emails to webhook: {webhook_url}")
     try:
+        # Remove any potential duplicates and sort the emails
+        unique_emails = sorted(set(emails))
+        
+        # Format the emails as a single comma-separated string
+        formatted_emails = ', '.join(unique_emails)
+        
         payload = {
-            'emails': emails,
+            'emails': formatted_emails,
             'recordId': record_id
         }
         response = requests.post(webhook_url, json=payload)
@@ -132,7 +138,7 @@ def scrape():
     thread = threading.Thread(target=background_scrape, args=(names_list, domain, niches_list, webhook_url, record_id))
     thread.start()
     
-    return jsonify({'message': 'Scraping process started', 'recordId': record_id}), 200
+    return jsonify({'message': 'Scraping started, will be send to:', 'recordId': record_id}), 200
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 8080)))
