@@ -1,3 +1,4 @@
+#tompithsatom/qifshamotrenemail:0.1.0 - works perfectly
 import sys
 import os
 import json
