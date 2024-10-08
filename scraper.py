@@ -260,8 +260,27 @@ def scrape():
 @app.route('/get_logs', methods=['GET'])
 @require_api_key
 def get_logs():
-    logs = memory_handler.get_logs()
-    return jsonify({'logs': logs}), 200
+    ensure_log_file()
+    try:
+        with open(LOG_FILE, 'r') as f:
+            logs = f.read()
+        return jsonify({"logs": logs}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/logs-reset', methods=['POST'])
+@require_api_key
+def reset_logs():
+    try:
+        with open(LOG_FILE, 'w') as f:
+            f.write("Logs reset\n")
+        return jsonify({"message": "Logs reset successfully"}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/health', methods=['GET'])
+def health_check():
+    return jsonify({"status": "healthy"}), 200
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 8080))
